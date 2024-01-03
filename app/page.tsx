@@ -1,95 +1,84 @@
-import Image from 'next/image'
-import styles from './page.module.css'
+"use client";
+
+import { useEffect, useState } from "react";
+import { Address, createWalletClient, custom } from "viem";
+
+const message = `demo.dynamic.xyz wants you to sign in with your Ethereum account:
+0x76D17ebc88c913eE305b92b81783D45859fFd68E
+
+Welcome to Dynamic Demo. Signing is the only way we can truly know that you are the owner of the wallet you are connecting. Signing is a safe, gas-less transaction that does not in any way give Dynamic Demo permission to perform any transactions with your wallet.
+
+URI: https://demo.dynamic.xyz/
+Version: 1
+Chain ID: 1
+Nonce: 00000000000000000000000000000000
+Issued At: 2024-01-03T18:45:51.064Z
+Request ID: 00000000-0000-0000-0000-000000000000`;
 
 export default function Home() {
+  const [address, setAddress] = useState<Address | null>(null);
+
+  const getProvider = () => {
+    return (window as any).phantom.ethereum;
+  };
+
+  const getWalletClient = async () => {
+    const client = createWalletClient({
+      transport: custom(getProvider()),
+    });
+
+    const [lowercaseAddress] = await client.requestAddresses();
+
+    return createWalletClient({
+      account: lowercaseAddress,
+      transport: custom(getProvider()),
+    });
+  };
+
+  const onClickConnectPhantomHandler = async () => {
+    const client = createWalletClient({
+      transport: custom(getProvider()),
+    });
+
+    const [lowercaseAddress] = await client.requestAddresses();
+
+    setAddress(lowercaseAddress);
+  };
+
+  const onClickSignMessageHandler = async () => {
+    const client = createWalletClient({
+      account: address!,
+      transport: custom(getProvider()),
+    });
+
+    const signedMessage = await client.signMessage({
+      message,
+    });
+
+    console.log("🚀 ~ signedMessage:", signedMessage);
+
+    alert(signedMessage);
+  };
+
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>app/page.tsx</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
+    <div>
+      {!address && (
+        <button onClick={onClickConnectPhantomHandler}>
+          Connect with Phantom Ledger on EVM
+        </button>
+      )}
 
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
+      {!!address && (
+        <>
           <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
+            Connected with address: <strong>{address}</strong>
+            Sign Message content:
           </p>
-        </a>
-      </div>
-    </main>
-  )
+          <pre>{message}</pre>
+
+          <button onClick={onClickSignMessageHandler}>Sign Message</button>
+        </>
+      )}
+    </div>
+  );
 }
